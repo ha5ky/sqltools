@@ -19,22 +19,38 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-mod convert;
-mod data_set;
-mod dialect;
-mod fetcher;
+use anyhow::{anyhow, Error, Ok, Result};
+use async_trait::async_trait;
+use tokio::fs;
 
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
+#[async_trait]
+pub trait Fetcher {
+    type Error;
+    async fn fetch(&self) -> Result<String, Self::Error>;
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+struct UrlFetcher<'a>(pub(crate) &'a str);
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+#[async_trait]
+impl<'a> Fetcher for UrlFetcher<'a> {
+    type Error = Error;
+
+    // http://
+    async fn fetch(&self) -> Result<String, Self::Error> {
+        Ok(reqwest::get(self.0).await?.text().await?)
+    }
+}
+struct FileFetcher<'a>(pub(crate) &'a str);
+
+#[async_trait]
+impl<'a> Fetcher for FileFetcher<'a> {
+    type Error = Error;
+
+    // file://
+    async fn fetch(&self) -> Result<String, Self::Error> {
+        let mut buf = String::new();
+        let _ = File::open(self.0)?.read_to_string(&mut buf);
+        Ok(buf)
+        // Ok(fs::read_to_string(&self.0[7..]).await?)
     }
 }

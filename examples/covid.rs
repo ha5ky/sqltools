@@ -38,7 +38,7 @@ async fn main() -> Result<()> {
     println!("{:?}", curr_pwd);
     let url = "../../../owid-covid-latest.csv";
     let mut buf = String::new();
-    let data = File::open(url)?.read_to_string(&mut buf)?;
+    let _ = File::open(url)?.read_to_string(&mut buf)?;
     println!("{}", buf);
     // let data = reqwest::get(url).await?.text().await?;
     // println!("{}", data);

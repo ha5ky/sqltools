@@ -19,22 +19,25 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-mod convert;
-mod data_set;
-mod dialect;
-mod fetcher;
 
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
+use std::ops::{Deref, DerefMut};
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+use polars::prelude::*;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+#[derive(Debug)]
+pub struct DataSet(DataFrame);
+
+impl Deref for DataSet {
+    type Target = DataFrame;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
+
+impl DerefMut for DataSet {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+

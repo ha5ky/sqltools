@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 use anyhow::{anyhow, Error};
-use sqlparser::ast::{Expr, Offset as SqlOffset, OffsetRows, Select, SetExpr, Statement, Value};
+use sqlparser::ast::{Expr, Offset as SqlOffset, Select, SetExpr, Statement, Value};
 
 #[derive(Debug, Default)]
 pub struct Sql<'a> {
@@ -75,7 +75,7 @@ impl<'a> From<Offset> for i64 {
     fn from(offset: Offset) -> Self {
         match offset.0 {
             SqlOffset {
-                value: Expr::Value(Value::Number(v, _b)),
+                value: Expr::Value(Value::Number(v, _)),
                 ..
             } => v.parse().unwrap_or(0),
             _ => 0,
