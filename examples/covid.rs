@@ -33,7 +33,6 @@ async fn main() -> Result<()> {
     tracing_subscriber::fmt::init();
 
     // let url = "https://raw.githubusercontent.com/owid/covid-19-data/master/public/data/latest/owid-covid-latest.csv";
-    // let url = "http://vidp-dr-dev-oss.oss-cn-hangzhou.aliyuncs.com/test/owid-covid-latest.csv";
     let curr_pwd = env::current_exe()?;
     println!("{:?}", curr_pwd);
     let url = "../../../owid-covid-latest.csv";

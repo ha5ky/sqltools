@@ -22,6 +22,7 @@
 
 use std::ops::{Deref, DerefMut};
 
+use anyhow::Ok;
 use polars::prelude::*;
 
 #[derive(Debug)]
@@ -41,3 +42,11 @@ impl DerefMut for DataSet {
     }
 }
 
+impl DataSet {
+    fn to_csv(&mut self) -> Result<String> {
+        let mut buf = vec![];
+        let mut writer = CsvWriter::new(&mut buf);
+        writer.finish(self);
+        Ok(String::from_utf8(buf)?)
+    }
+}
