@@ -22,11 +22,15 @@
 
 use std::ops::{Deref, DerefMut};
 
-use anyhow::Ok;
+use anyhow::{anyhow, Result};
 use polars::prelude::*;
+use sqlparser::parser::Parser;
+use tracing::info;
+
+use crate::{convert::Sql, dialect::OrinDialect, loader::detect_content};
 
 #[derive(Debug)]
-pub struct DataSet(DataFrame);
+pub struct DataSet(pub DataFrame);
 
 impl Deref for DataSet {
     type Target = DataFrame;
@@ -49,4 +53,29 @@ impl DataSet {
         writer.finish(self);
         Ok(String::from_utf8(buf)?)
     }
+}
+
+pub async fn query<T: AsRef<str>>(sql: T) -> Result<DataSet> {
+    let ast = Parser::parse_sql(&OrinDialect::default(), sql.as_ref())?;
+
+    if ast.len() != 1 {
+        Err(anyhow!("only support single sql at the monment"));
+    }
+
+    let sql = &ast[0];
+
+    let Sql {
+        source,
+        condition,
+        selection,
+        offset,
+        limit,
+        order_by,
+    } = sql.try_into()?;
+
+    info!("retrieving data from {source}");
+
+    detect_content(content);
+
+    Ok(())
 }

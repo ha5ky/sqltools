@@ -1,3 +1,5 @@
+use std::io::Cursor;
+
 // MIT License
 //
 // Copyright (c) 2024 hu5ky
@@ -19,41 +21,39 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-use anyhow::{anyhow, Error, Result};
-use async_trait::async_trait;
-use tokio::fs;
+use crate::data_set::DataSet;
+use anyhow::{Error, Ok, Result};
+use polars::io::{csv::CsvReader, SerReader};
 
-#[async_trait]
-pub trait Fetcher {
+pub trait Loader {
     type Error;
-    async fn fetch(&self) -> Result<String, Self::Error>;
+    fn load(self) -> Result<DataSet, Self::Error>;
 }
 
-struct UrlFetcher<'a>(pub(crate) &'a str);
-
-#[async_trait]
-impl<'a> Fetcher for UrlFetcher<'a> {
-    type Error = Error;
-
-    // http://
-    async fn fetch(&self) -> Result<String, Self::Error> {
-        Ok(reqwest::get(self.0).await?.text().await?)
-    }
+pub enum Load {
+    Csv(CsvLoader),
 }
-struct FileFetcher<'a>(pub(crate) &'a str);
 
-#[async_trait]
-impl<'a> Fetcher for FileFetcher<'a> {
-    type Error = Error;
-
-    // file://
-    async fn fetch(&self) -> Result<String, Self::Error> {
-        let data = fs::read_to_string(&self.0[7..]).await?;
-        Ok(data)
-        // Ok(fs::read_to_string(&self.0[7..]).await?)
+impl Load {
+    pub fn load(self) -> Result<DataSet> {
+        match self {
+            Load::Csv(csv) => csv.load(),
+        }
     }
 }
 
-pub fn retrieve_data() -> Result<> {
-    
+pub struct CsvLoader(pub(crate) String);
+
+impl Loader for CsvLoader {
+    type Error = Error;
+    fn load(self) -> Result<DataSet, Self::Error> {
+        let df = CsvReader::new(Cursor::new(self.0))
+            .infer_schema(Some(16))
+            .finish()?;
+        Ok(DataSet(df))
+    }
+}
+
+pub fn detect_content(content: String) -> Load {
+    Load::Csv(CsvLoader(content))
 }

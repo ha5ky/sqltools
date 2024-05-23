@@ -23,6 +23,7 @@ mod convert;
 mod data_set;
 mod dialect;
 mod fetcher;
+mod loader;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right
