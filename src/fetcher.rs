@@ -54,6 +54,27 @@ impl<'a> Fetcher for FileFetcher<'a> {
     }
 }
 
-pub fn retrieve_data() -> Result<> {
-    
+pub async fn retrieve_data(source: impl AsRef<str>) -> Result<String, Error> {
+    println!("========= {:#?}",source.as_ref());
+    match &source.as_ref()[..4] {
+        "http" => UrlFetcher(source.as_ref()).fetch().await,
+        "file" => FileFetcher(source.as_ref()).fetch().await,
+        _ => Err(anyhow!(
+            "not support scheme, we only support http/https/file at the moment."
+        )),
+    }
 }
+
+// TODO: we will extract the scheme before retieve_data, retrieve_data's pattern shouldn't use such as
+//          "http" => UrlFetcher(source.as_ref()).fetch().await,
+//          "file" => FileFetcher(source.as_ref()).fetch().await,
+//
+// fn extract_scheme(source: impl AsRef<str>+ 'static) -> Result<Box<dyn Fetcher>> {
+//     match &source.as_ref()[..4] {
+//         "http" => Ok(Box::new(UrlFetcher(source.as_ref().to_owned()))),
+//         "file" => Ok(Box::new(FileFetcher(source.as_ref()))),
+//         _ => Err(anyhow!(
+//             "not support scheme, we only support http/https/file at the moment."
+//         )),
+//     }
+// }

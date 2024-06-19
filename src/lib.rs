@@ -19,11 +19,11 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-mod convert;
-mod data_set;
-mod dialect;
-mod fetcher;
-mod loader;
+pub mod convert;
+pub mod data_set;
+pub mod dialect;
+pub mod fetcher;
+pub mod loader;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right

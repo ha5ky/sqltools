@@ -1464,20 +1464,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "queryer"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "polars",
- "reqwest",
- "sqlparser 0.46.0",
- "tokio",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "quote"
 version = "1.0.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1901,6 +1887,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "11a81a8cad9befe4cf1b9d2d4b9c6841c76f0882a3fec00d95133953c13b3d3d"
 dependencies = [
  "log",
+]
+
+[[package]]
+name = "sqltools"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "polars",
+ "reqwest",
+ "sqlparser 0.46.0",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]

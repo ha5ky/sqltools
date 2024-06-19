@@ -19,8 +19,11 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-use anyhow::{anyhow, Error};
-use sqlparser::ast::{Expr, Offset as SqlOffset, Select, SetExpr, Statement, Value};
+use anyhow::{anyhow, Error, Ok};
+use polars::prelude::*;
+use sqlparser::ast::{
+    Expr as SqlExpr, Offset as SqlOffset, OrderByExpr, Select, SelectItem, SetExpr, Statement, TableFactor, TableWithJoins, Value
+};
 
 #[derive(Debug, Default)]
 pub struct Sql<'a> {
@@ -31,6 +34,20 @@ pub struct Sql<'a> {
     pub(crate) offset: Option<i64>,
     pub(crate) limit: Option<usize>,
 }
+
+// TODO: improving the rest of Sql attributes.
+#[derive(Debug)]
+pub struct Offset(pub(crate) SqlOffset);
+#[derive(Debug)]
+pub struct Source<'a>(pub(crate) &'a [TableWithJoins]);
+#[derive(Debug)]
+pub struct OrderBy<'a>(pub(crate) &'a OrderByExpr);
+#[derive(Debug)]
+pub struct Limit(pub(crate) SqlExpr);
+#[derive(Debug)]
+pub struct Condition(pub(crate) Option<SqlExpr>);
+#[derive(Debug)]
+pub struct Projection(pub(crate) SelectItem);
 
 impl<'a> TryFrom<&'a Statement> for Sql<'a> {
     type Error = Error;
@@ -49,6 +66,7 @@ impl<'a> TryFrom<&'a Statement> for Sql<'a> {
                     SetExpr::Select(statement) => statement.as_ref(),
                     _ => return Err(anyhow!("We only support Select Query at the moment")),
                 };
+                let source = table_with_joins;
                 Ok(Sql::default())
             }
             _ => Ok(Sql::default()),
@@ -56,29 +74,55 @@ impl<'a> TryFrom<&'a Statement> for Sql<'a> {
     }
 }
 
-#[derive(Debug)]
-// pub struct Offset<'a>(pub(crate) &'a SqlOffset);
-pub struct Offset(pub(crate) SqlOffset);
-
-// impl<'a> From<Offset<'a>> for i64 {
-//     fn from(offset: Offset) -> Self {
-//          match offset.0 {
-//             SqlOffset {
-//                 value: Expr::Value(Value::Number(v, _b)),
-//                 ..
-//             } => v.parse().unwrap_or(0),
-//             _ => 0,
-//         }
-//     }
-// }
 impl<'a> From<Offset> for i64 {
     fn from(offset: Offset) -> Self {
         match offset.0 {
             SqlOffset {
-                value: Expr::Value(Value::Number(v, _)),
+                value: SqlExpr::Value(Value::Number(v, _)),
                 ..
             } => v.parse().unwrap_or(0),
             _ => 0,
         }
+    }
+}
+
+impl<'a> TryFrom<Source<'a>> for &'a str {
+    type Error = Error;
+    fn try_from(source: Source<'a>) -> Result<Self, Self::Error> {
+        if source.0.len() != 1 {
+            return Err(anyhow!(
+                "we only support one single data source at the moment"
+            ));
+        }
+
+        if source.0.len() == 0 {
+            return Err(anyhow!("there is no data source"));
+        }
+
+        let table = source.0.first().unwrap();
+        if !table.joins.is_empty() {
+            return Err(anyhow!("We do not support joint data source at the moment"));
+        }
+        match &table.relation {
+            TableFactor::Table { name, .. } => Ok(&name.0.first().unwrap().value),
+            _ => Err(anyhow!("we only support table new")),
+        }
+    }
+}
+
+impl<'a> TryFrom<OrderBy<'a>> for (String, bool) {
+    type Error = Error;
+    fn try_from(order_by: OrderBy<'a>) -> Result<Self, Self::Error> {
+        let name = match &order_by.0.expr {
+            SqlExpr::Identifier(id) => id.to_string(),
+            expr => {
+                return Err(anyhow!(
+                    "we only support inentifier for order by, got {}",
+                    expr
+                ))
+            }
+        };
+        let asc = order_by.0.asc.unwrap_or(true);
+        Ok((name, asc))
     }
 }

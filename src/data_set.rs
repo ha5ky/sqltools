@@ -22,12 +22,12 @@
 
 use std::ops::{Deref, DerefMut};
 
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Ok, Result};
 use polars::prelude::*;
-use sqlparser::parser::Parser;
+use sqlparser::{ast::Expr, parser::Parser};
 use tracing::info;
 
-use crate::{convert::Sql, dialect::OrinDialect, loader::detect_content};
+use crate::{convert::Sql, dialect::OrinDialect, fetcher::retrieve_data, loader::detect_content};
 
 #[derive(Debug)]
 pub struct DataSet(pub DataFrame);
@@ -56,14 +56,15 @@ impl DataSet {
 }
 
 pub async fn query<T: AsRef<str>>(sql: T) -> Result<DataSet> {
+    println!("{}", sql.as_ref());
     let ast = Parser::parse_sql(&OrinDialect::default(), sql.as_ref())?;
-
+    println!("{:#?}", ast);
     if ast.len() != 1 {
-        Err(anyhow!("only support single sql at the monment"));
+        Err::<T, anyhow::Error>(anyhow!("only support single sql at the monment"));
     }
 
-    let sql = &ast[0];
-
+    let sql1 = &ast[0];
+    info!("sql ==================== {:#?}", sql1);
     let Sql {
         source,
         condition,
@@ -71,11 +72,28 @@ pub async fn query<T: AsRef<str>>(sql: T) -> Result<DataSet> {
         offset,
         limit,
         order_by,
-    } = sql.try_into()?;
+    } = sql1.try_into()?;
 
     info!("retrieving data from {source}");
+    info!("retrieving data from {:#?}", condition);
 
-    detect_content(content);
+    let ds = detect_content(retrieve_data(source).await?).load()?;
 
-    Ok(())
+    let mut filtered = match condition {
+        Some(expr) => ds.0.lazy().filter(expr),
+        None => ds.0.lazy(),
+    };
+
+    filtered = order_by.into_iter().fold(filtered, |acc, (col, desc)| {
+        acc.sort(
+            &[col],
+            SortMultipleOptions::new().with_order_descending(desc),
+        )
+    });
+
+    if offset.is_some() || limit.is_some() {
+        filtered = filtered.slice(offset.unwrap_or(0), limit.unwrap_or(usize::MAX) as u32);
+    }
+
+    Ok(DataSet(filtered.select(selection).collect()?))
 }
